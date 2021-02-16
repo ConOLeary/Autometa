@@ -4,6 +4,7 @@ model.add(tf.layers.dense({units: 256, inputShape: [8]})); //input is a 1x8
 model.add(tf.layers.dense({units: 512, inputShape: [256], activation:"sigmoid"}));
 model.add(tf.layers.dense({units: 256, inputShape: [512], activation:"sigmoid"}));
 model.add(tf.layers.dense({units: 3, inputShape: [256]})); //returns a 1x3
+const ballSpeed = 7;
 const learningRate = 0.01;
 const optimizer = tf.train.adam(learningRate);
 model.compile({loss: 'meanSquaredError', optimizer: optimizer});
@@ -41,6 +42,7 @@ var update = function () {
     player.update();
     if(computer.ai_plays){
         move = ai.predict_move();
+        console.log("sup?" + move);
         computer.ai_update(move);
     }else
         computer.update(ball);
@@ -150,7 +152,7 @@ function Ball(x, y) {
     this.x = x;
     this.y = y;
     this.x_speed = 0;
-    this.y_speed = 3;
+    this.y_speed = ballSpeed;
 }
 
 //from pong code:
@@ -248,7 +250,7 @@ AI.prototype.new_turn = function(){
     console.log('new turn: ' + this.turn);
 
     //hm games til train?
-    if(this.turn > 5){
+    if(this.turn > 2){
         this.train();
         computer.ai_plays = true;
         this.reset();
