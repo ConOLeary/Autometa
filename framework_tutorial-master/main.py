@@ -56,7 +56,7 @@ if __name__ == "__main__":
     MAX_TRY = 1000
     epsilon = 1
     epsilon_decay = 0.999
-    learning_rate = 0.1
+    learning_rate = 0.5
     gamma = 0.6
     num_box = tuple((env.observation_space.high + np.ones(env.observation_space.shape)).astype(int))
     q_table = np.zeros(num_box + (env.action_space.n,))

@@ -8,12 +8,12 @@ import neat
 screen_width = 1500
 screen_height = 800
 generation = 0
-purple = (146, 15, 95, 255)
-green = (85, 162, 69, 255)
-grey = (100, 106, 97, 255)
-radar_green = (0, 255, 0)
-radar_blue = (0, 0, 255)
-radar_red = (255, 0, 0)
+btfo_purple = (146, 15, 95, 255)
+grass_green = (85, 162, 69, 255)
+road_grey = (100, 106, 97, 255)
+green = (0, 255, 0)
+blue = (0, 0, 255)
+red = (255, 0, 0)
 
 class Car:
     def __init__(self):
@@ -24,12 +24,10 @@ class Car:
         self.angle = 0
         self.speed = 0
         self.center = [self.pos[0] + 50, self.pos[1] + 50]
-        self.radars = []
-        self.grass_radars = []
-        self.anti_grass_radars = []
-        self.radars_for_draw = []
-        self.grass_radars_for_draw = []
-        self.anti_grass_radars_for_draw = []
+        self.btfo_radars = []
+        self.roadedge_radars = []
+        self.btfo_radars_for_draw = []
+        self.roadedge_radars_for_draw = []
         self.is_alive = True
         self.goal = False
         self.distance = 0
@@ -37,21 +35,17 @@ class Car:
 
     def draw(self, screen):
         screen.blit(self.rotate_surface, self.pos)
-        self.draw_radar(screen)
+        self.draw_radars(screen)
 
-    def draw_radar(self, screen):
-        for r in self.radars:
+    def draw_radars(self, screen):
+        for r in self.btfo_radars:
             pos, dist = r
-            pygame.draw.line(screen, radar_green, self.center, pos, 1)
-            pygame.draw.circle(screen, radar_green, pos, 5)
-        for r in self.grass_radars:
+            pygame.draw.line(screen, green, self.center, pos, 1)
+            pygame.draw.circle(screen, green, pos, 5)
+        for r in self.roadedge_radars:
             pos, dist = r
-            pygame.draw.line(screen, radar_blue, self.center, pos, 1)
-            pygame.draw.circle(screen, radar_blue, pos, 5)
-        for r in self.anti_grass_radars:
-            pos, dist = r
-            pygame.draw.line(screen, radar_red, self.center, pos, 1)
-            pygame.draw.circle(screen, radar_red, pos, 5)
+            pygame.draw.line(screen, blue, self.center, pos, 1)
+            pygame.draw.circle(screen, blue, pos, 5)
 
     def check_collision(self, map, colour):
         self.is_alive = True
@@ -60,46 +54,44 @@ class Car:
                 self.is_alive = False
                 break
 
-    def check_radar(self, degree, map, colour):
+    def check_btfo_radar(self, degree, map):
         len = 0
         x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
         y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
 
-        while not map.get_at((x, y)) == colour and len < 300:
+        while not map.get_at((x, y)) == btfo_purple and len < 300:
             len = len + 1
             x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
             y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
 
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
-        self.radars.append([(x, y), dist])
+        self.btfo_radars.append([(x, y), dist])
     
-    def check_grass_radar(self, degree, map, colour):
+    def check_roadedge_radar(self, degree, map):
         len = 0
         x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
         y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
-        while not map.get_at((x, y)) == colour and len < 300:
-            len = len + 1
-            x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
-            y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
+        radar_on_grass = 0
+        try:
+            if map.get_at((x, y)) == grass_green:
+                radar_on_grass = 1
+        except IndexError: # catch the error
+            pass
+        colour = grass_green
+        if radar_on_grass == 0:
+            colour = road_grey
+        try:
+            while not map.get_at((x, y)) == colour and len < 300:
+                len = len + 1
+                x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
+                y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
+        except IndexError: # catch the error
+            pass
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
-        self.grass_radars.append([(x, y), dist])
-    
-    def check_anti_grass_radar(self, degree, map, colour):
-        len = 0
-        x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
-        y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
-        while not map.get_at((x, y)) == colour and len < 300:
-            len = len + 1
-            x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
-            y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
-        dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
-        self.anti_grass_radars.append([(x, y), dist])
+        self.roadedge_radars.append([(x, y), dist])
 
     def update(self, map):
+        print("pycar update")
         #check speed
         self.speed = 15
 
@@ -128,23 +120,19 @@ class Car:
         right_bottom = [self.center[0] + math.cos(math.radians(360 - (self.angle + 330))) * len, self.center[1] + math.sin(math.radians(360 - (self.angle + 330))) * len]
         self.four_points = [left_top, right_top, left_bottom, right_bottom]
 
-        self.check_collision(map, purple)
-        self.radars.clear()
-        self.grass_radars.clear()
-        self.anti_grass_radars.clear()
+        self.check_collision(map, btfo_purple)
+        self.btfo_radars.clear()
+        self.roadedge_radars.clear()
         for d in range(-90, 120, 45):
-            self.check_radar(d, map, purple)
-            self.check_grass_radar(d, map, green)
-            self.check_anti_grass_radar(d, map, grey)
+            self.check_btfo_radar(d, map)
+            self.check_roadedge_radar(d, map)
 
     def get_data(self):
-        radars = self.radars
-        grass_radars = self.grass_radars
-        anti_grass_radars = self.anti_grass_radars
-        ret = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        for i, r in enumerate(radars + grass_radars + anti_grass_radars):
+        btfo_radars = self.btfo_radars
+        roadedge_radars = self.roadedge_radars
+        ret = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        for i, r in enumerate(btfo_radars + roadedge_radars):
             ret[i] = int(r[1] / 30)
-
         return ret
 
     def get_alive(self):
