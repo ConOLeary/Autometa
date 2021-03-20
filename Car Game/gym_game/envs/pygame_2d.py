@@ -282,7 +282,7 @@ class PyGame2D:
             self.car.check_roadedge_radar_for_draw(d)
 
         pygame.draw.circle(self.screen, (255, 255, 0), check_point[self.car.current_check], 70, 1)
-        # for i, cp in enumerate(check_point): <-- for seeing all checkpoints
+        # for i, cp in enumerate(check_point): #<-- for seeing all checkpoints
         #     pygame.draw.circle(self.screen, (255, 255, 0), check_point[i], 70, 1)
         self.car.draw_collision(self.screen)
         self.car.draw_btfo_radar(self.screen)

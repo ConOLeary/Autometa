@@ -12,6 +12,8 @@ generation = 0
 car_speed = 12
 grass_speed = 8
 
+finish_line = (1100, 690)
+
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
 road_grey = (100, 106, 97, 255)
@@ -21,8 +23,8 @@ red = (255, 0, 0)
 
 class Car:
     def __init__(self):
-        self.surface = pygame.image.load("car.png")
-        self.map = pygame.image.load("map.png")
+        self.surface = pygame.image.load("../car.png")
+        self.map = pygame.image.load("../map.png")
         self.surface = pygame.transform.scale(self.surface, (100, 100))
         self.rotate_surface = self.surface
         self.pos = [700, 650]
@@ -36,7 +38,9 @@ class Car:
         self.four_points = [[0, 0], [0, 0], [0, 0], [0, 0]]
         self.is_alive = True
         self.is_on_grass = False
+        self.is_in_finish_line = False
         self.goal = False
+        self.laps_done = 0
         self.distance = 0
         self.time_spent = 0
 
@@ -47,41 +51,60 @@ class Car:
     def draw_radars(self, screen):
         for r in self.btfo_radars:
             pos, dist = r
-            print("dist: ", dist)
             pygame.draw.line(screen, green, self.center, pos, 1)
             pygame.draw.circle(screen, green, pos, 5)
         for r in self.roadedge_radars:
             pos, dist = r
-            print("dist: ", dist)
             pygame.draw.line(screen, blue, self.center, pos, 1)
             pygame.draw.circle(screen, blue, pos, 5)
 
     def check_collision(self, map, colour):
         self.is_alive = True
         for p in self.four_points:
-            if self.map.get_at((int(p[0]), int(p[1]))) == colour:
-                self.is_alive = False
-                break
+            try:
+                if self.map.get_at((int(p[0]), int(p[1]))) == colour:
+                    self.is_alive = False
+                    break
+            except IndexError:
+                pass
 
     def check_is_on_grass(self):
         self.is_on_grass = False
         points_on_grass = 0
         for p in self.four_points:
-            if self.map.get_at((int(p[0]), int(p[1]))) == grass_green:
-                points_on_grass += 1
+            try:
+                if self.map.get_at((int(p[0]), int(p[1]))) == grass_green:
+                    points_on_grass += 1
+            except IndexError:
+                pass
         if points_on_grass >= 2:
             self.is_on_grass = True
     
+    def get_distance(self, p1, p2):
+	    return math.sqrt(math.pow((p1[0] - p2[0]), 2) + math.pow((p1[1] - p2[1]), 2))
+    
+    def check_for_lap(self):
+        p = finish_line
+        dist = self.get_distance(p, self.center)
+        if dist < 70:
+            if not self.is_in_finish_line:
+                self.laps_done += 1
+                print("laps done: ", self.laps_done)
+                self.is_in_finish_line = True
+        else:
+            self.is_in_finish_line = False
+
     def check_btfo_radar(self, degree, map):
         len = 0
         x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
         y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
-        while not map.get_at((x, y)) == btfo_purple and len < 300:
-            len = len + 1
-            x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
-            y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-
+        try:
+            while not map.get_at((x, y)) == btfo_purple and len < 300:
+                len = len + 1
+                x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
+                y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
+        except IndexError: # catch the error
+            pass
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
         self.btfo_radars.append([(x, y), dist])
     
@@ -99,7 +122,7 @@ class Car:
             while not map.get_at((x, y)) == colour and len < 300:
                 len = len + 1
                 x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
-                y       = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
+                y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
         except IndexError: # catch the error
             pass
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
@@ -115,7 +138,7 @@ class Car:
         #check position
         self.rotate_surface = self.rot_center(self.surface, self.angle)
         self.pos[0] += math.cos(math.radians(360 - self.angle)) * self.speed
-        # if self.pos[0] < 20:
+        # if self.pos[0] < 20:            code to stop car colliding into horizontal bounds of screen
         #     self.pos[0] = 20
         # elif self.pos[0] > screen_width - 120:
         #     self.pos[0] = screen_width - 120
@@ -123,7 +146,7 @@ class Car:
         self.distance += self.speed
         self.time_spent += 1
         self.pos[1] += math.sin(math.radians(360 - self.angle)) * self.speed
-        # if self.pos[1] < 20:
+        # if self.pos[1] < 20:             code to stop car colliding into vetical bounds of screen
         #     self.pos[1] = 20
         # elif self.pos[1] > screen_height - 120:
         #     self.pos[1] = screen_height - 120
@@ -138,6 +161,7 @@ class Car:
         self.four_points = [left_top, right_top, left_bottom, right_bottom]
 
         self.check_collision(map, btfo_purple)
+        self.check_for_lap()
         self.btfo_radars.clear()
         self.roadedge_radars.clear()
         for d in range(-90, 120, 45):
@@ -186,7 +210,7 @@ def run_car(genomes, config):
     clock = pygame.time.Clock()
     generation_font = pygame.font.SysFont("Arial", 70)
     font = pygame.font.SysFont("Arial", 30)
-    map = pygame.image.load('map.png')
+    map = pygame.image.load('../map.png')
 
 
     # Main loop
@@ -220,11 +244,6 @@ def run_car(genomes, config):
                 car.update(map)
                 genomes[i][1].fitness += car.get_reward()
 
-        car.check_is_on_grass()
-        car.speed = 12
-        if car.is_on_grass:
-            car.speed = 5
-
         # check
         if remain_cars == 0:
             break
@@ -240,7 +259,7 @@ def run_car(genomes, config):
         text_rect.center = (screen_width/2, 100)
         screen.blit(text, text_rect)
 
-        text = font.render("remain cars : " + str(remain_cars), True, (0, 0, 0))
+        text = font.render("Remaining Cars: " + str(remain_cars), True, (0, 0, 0))
         text_rect = text.get_rect()
         text_rect.center = (screen_width/2, 200)
         screen.blit(text, text_rect)
