@@ -95,15 +95,12 @@ class Car:
         len = 0
         x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
         y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-        radar_on_grass = 0
+        colour = grass_green
         try:
             if self.map.get_at((x, y)) == grass_green:
-                radar_on_grass = 1
+                colour = road_grey
         except IndexError: # catch the error
             pass
-        colour = grass_green
-        if radar_on_grass == 0:
-            colour = road_grey
         try:
             while not self.map.get_at((x, y)) == colour and len < 300:
                 len = len + 1
