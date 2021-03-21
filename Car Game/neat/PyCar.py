@@ -8,10 +8,12 @@ import neat
 screen_width = 1500
 screen_height = 800
 generation = 0
+max_gen_time = 50000
 
 car_speed = 12
 grass_speed = 8
 
+check_point = ((1100, 690), (1100, 85), (520, 270), (800, 520), (650, 690))
 finish_line = (1100, 690)
 
 btfo_purple = (146, 15, 95, 255)
@@ -38,11 +40,18 @@ class Car:
         self.four_points = [[0, 0], [0, 0], [0, 0], [0, 0]]
         self.is_alive = True
         self.is_on_grass = False
-        self.is_in_finish_line = False
+        self.is_in_cp = False
+        self.current_check = 0
+        self.prev_distance = 0
+        self.cur_distance = 0
+        self.goal = False
         self.goal = False
         self.laps_done = 0
         self.distance = 0
         self.time_spent = 0
+
+    def get_distance(self, p1, p2):
+	    return math.sqrt(math.pow((p1[0] - p2[0]), 2) + math.pow((p1[1] - p2[1]), 2))
 
     def draw(self, screen):
         screen.blit(self.rotate_surface, self.pos)
@@ -80,19 +89,34 @@ class Car:
         if points_on_grass >= 2:
             self.is_on_grass = True
     
-    def get_distance(self, p1, p2):
-	    return math.sqrt(math.pow((p1[0] - p2[0]), 2) + math.pow((p1[1] - p2[1]), 2))
-    
-    def check_for_lap(self):
-        p = finish_line
+    def check_checkpoint(self):
+        p = check_point[self.current_check]
+        self.prev_distance = self.cur_distance
         dist = self.get_distance(p, self.center)
         if dist < 70:
-            if not self.is_in_finish_line:
-                self.laps_done += 1
-                print("laps done: ", self.laps_done)
-                self.is_in_finish_line = True
+            if not self.is_in_cp:
+                self.current_check += 1
+                if self.current_check % (len(check_point) - 1) == 0:
+                    self.laps_done += 1
+                self.prev_distance = 9999
+                self.time_spent = 0
+                self.is_in_cp = True
+                # print("current check: ", self.current_check)
+                # print("laps done: ", self.laps_done)
         else:
-            self.is_in_finish_line = False
+            self.is_in_cp = False
+        self.cur_distance = dist
+
+    # def check_for_lap(self):       # functionality entailed in checkpoint checker function
+    #     p = finish_line
+    #     dist = self.get_distance(p, self.center)
+    #     if dist < 70:
+    #         if not self.is_in_finish_line:
+    #             self.laps_done += 1
+    #             print("laps done: ", self.laps_done)
+    #             self.is_in_finish_line = True
+    #     else:
+    #         self.is_in_finish_line = False
 
     def check_btfo_radar(self, degree, map):
         len = 0
@@ -161,7 +185,7 @@ class Car:
         self.four_points = [left_top, right_top, left_bottom, right_bottom]
 
         self.check_collision(map, btfo_purple)
-        self.check_for_lap()
+        self.check_checkpoint()
         self.btfo_radars.clear()
         self.roadedge_radars.clear()
         for d in range(-90, 120, 45):
@@ -216,6 +240,7 @@ def run_car(genomes, config):
     # Main loop
     global generation
     generation += 1
+    gen_start_time = pygame.time.get_ticks()
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -245,7 +270,11 @@ def run_car(genomes, config):
                 genomes[i][1].fitness += car.get_reward()
 
         # check
-        if remain_cars == 0:
+        current_time = pygame.time.get_ticks()
+        print("gen_start_time: ", gen_start_time)
+        print("current_time: ", current_time)
+        #print("current_time - gen_start_time: ", current_time - gen_start_time)
+        if remain_cars == 0 or (current_time - gen_start_time) > max_gen_time:
             break
 
         # Drawing

@@ -1,9 +1,0 @@
-########## 4 / 2 / 2021 ##########
-> Bots could be deep learned to find the most optimal ways to play the game rather then using human data. Means of course there will be more data,
-    but more importantly, frequency of choices can be assumed to be purely based on starategic optimisation. With human data, it would have to be
-    considered that certain choices may be made because these choices involve the use of more-fun features in the game.
-
-########## 12 / 2 / 2021 ##########
-> Reinforcement learning seems to be what is needed
-
-########## 12 / 2 / 2021 ##########

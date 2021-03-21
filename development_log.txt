@@ -1,0 +1,12 @@
+########## 20 / 3 / 2021 ##########
+> "Min-maxing" is the boogie man. This usually has a tangibly unhealthy effect on the competitive community of a game once the "honey moon period" of the game / patch of the game has passed, and the best ways to min-max the game have been discovered and subsequently adopted widely.
+
+> NEAT is apparently OP and is offering much more promising results then deep Q-learning (or whatever the first approach used). I have decided that I shouldn't expect myself to understand the underlying algorithm thoroughly.
+
+########## 12 / 2 / 2021 ##########
+> Reinforcement learning seems to be what is needed
+
+########## 4 / 2 / 2021 ##########
+> Bots could be deep learned to find the most optimal ways to play the game rather then using human data. Means of course there will be more data,
+    but more importantly, frequency of choices can be assumed to be purely based on starategic optimisation. With human data, it would have to be
+    considered that certain choices may be made because these choices involve the use of more-fun features in the game.
