@@ -318,11 +318,14 @@ if __name__ == "__main__":
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
+    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300)
+
     # Create core evolution algorithm class
     if len(sys.argv) == 1:
         p = neat.Population(config, None)
-    
-    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix='neat-checkpoint-')
+    elif len(sys.argv) == 2:
+        print("ais/"+sys.argv[1])
+        p = cp_agent.restore_checkpoint("ais/"+sys.argv[1])
 
     p.add_reporter(cp_agent)
     # Add reporter for fancy statistical result
