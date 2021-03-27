@@ -4,16 +4,18 @@ import math
 import sys
 import random
 import neat
+import CheckPointer
 
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 50000
+max_gen_time = 30000
+gen_start_time = 0
 
 car_speed = 12
 grass_speed = 8
 
-check_point = ((1100, 690), (1100, 85), (520, 270), (800, 520), (650, 690))
+check_points = ((1100, 690), (1100, 85), (520, 270), (800, 520), (650, 690))
 finish_line = (1100, 690)
 
 btfo_purple = (146, 15, 95, 255)
@@ -42,6 +44,7 @@ class Car:
         self.is_on_grass = False
         self.is_in_cp = False
         self.current_check = 0
+        self.total_checks = 0
         self.prev_distance = 0
         self.cur_distance = 0
         self.goal = False
@@ -90,13 +93,15 @@ class Car:
             self.is_on_grass = True
     
     def check_checkpoint(self):
-        p = check_point[self.current_check]
+        p = check_points[self.current_check]
         self.prev_distance = self.cur_distance
         dist = self.get_distance(p, self.center)
         if dist < 70:
             if not self.is_in_cp:
                 self.current_check += 1
-                if self.current_check % (len(check_point) - 1) == 0:
+                self.total_checks += 1
+                self.current_check %= len(check_points)
+                if self.current_check == check_points:
                     self.laps_done += 1
                 self.prev_distance = 9999
                 self.time_spent = 0
@@ -204,7 +209,9 @@ class Car:
         return self.is_alive
 
     def get_reward(self):
-        return self.distance / 50.0
+        #print("(", self.distance, " / 1000.0) * (", self.total_checks, " * ", self.total_checks, " * 1000 / ", get_generation_duration(), " * 0.1)")
+        #return (self.distance / 1000.0) * (self.total_checks * self.total_checks * 1000 / get_generation_duration() * 0.1)
+        return self.total_checks * self.total_checks / get_generation_duration()
 
     def rot_center(self, image, angle):
         orig_rect = image.get_rect()
@@ -213,6 +220,12 @@ class Car:
         rot_rect.center = rot_image.get_rect().center
         rot_image = rot_image.subsurface(rot_rect).copy()
         return rot_image
+
+def get_generation_duration():
+    time = current_time - gen_start_time
+    if time == 0:
+        return 1
+    return time
 
 def run_car(genomes, config):
 
@@ -236,12 +249,16 @@ def run_car(genomes, config):
     font = pygame.font.SysFont("Arial", 30)
     map = pygame.image.load('../map.png')
 
-
     # Main loop
     global generation
+    global current_time
+    global gen_start_time
+    current_time = pygame.time.get_ticks()
     generation += 1
     gen_start_time = pygame.time.get_ticks()
     while True:
+        current_time = pygame.time.get_ticks()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit(0)
@@ -270,11 +287,7 @@ def run_car(genomes, config):
                 genomes[i][1].fitness += car.get_reward()
 
         # check
-        current_time = pygame.time.get_ticks()
-        print("gen_start_time: ", gen_start_time)
-        print("current_time: ", current_time)
-        #print("current_time - gen_start_time: ", current_time - gen_start_time)
-        if remain_cars == 0 or (current_time - gen_start_time) > max_gen_time:
+        if remain_cars == 0 or get_generation_duration() > max_gen_time:
             break
 
         # Drawing
@@ -297,14 +310,21 @@ def run_car(genomes, config):
         clock.tick(0)
 
 if __name__ == "__main__":
+    print('Number of arguments:', len(sys.argv), 'arguments.')
+    print('Argument List:', str(sys.argv))
+
     # Set configuration file
     config_path = "./config-feedforward.txt"
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
     # Create core evolution algorithm class
-    p = neat.Population(config)
+    if len(sys.argv) == 1:
+        p = neat.Population(config, None)
+    
+    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix='neat-checkpoint-')
 
+    p.add_reporter(cp_agent)
     # Add reporter for fancy statistical result
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
