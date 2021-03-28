@@ -6,6 +6,9 @@ import random
 import neat
 import CheckPointer
 import seaborn
+import matplotlib.pyplot as plt
+import numpy as np; np.random.seed(0)
+
 
 screen_width = 1500
 screen_height = 800
@@ -243,6 +246,7 @@ def run_car(genomes, config):
         # Init my cars
         cars.append(Car())
 
+
     # Init my game
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
@@ -323,6 +327,11 @@ def gen_heatmap(genomes, config):
 
         # Init my cars
         cars.append(Car())
+
+    seaborn.set_theme()
+    uniform_data = np.random.rand(800, 1500)
+    ax = seaborn.heatmap(uniform_data, vmin=0, vmax=1, xticklabels=100, yticklabels=100)
+    plt.show()
 
     # Init my game
     pygame.init()

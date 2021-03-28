@@ -1,3 +1,4 @@
 pickle-mixin
 neat-python
 seaborn
+numpy
