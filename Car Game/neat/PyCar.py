@@ -329,9 +329,8 @@ def gen_heatmap(genomes, config):
         cars.append(Car())
 
     seaborn.set_theme()
-    uniform_data = np.random.rand(800, 1500)
-    ax = seaborn.heatmap(uniform_data, vmin=0, vmax=1, xticklabels=100, yticklabels=100)
-    plt.show()
+    heatmap_data = np.zeros((800, 1500))
+
 
     # Init my game
     pygame.init()
@@ -366,7 +365,7 @@ def gen_heatmap(genomes, config):
                 car.angle -= 5
             elif action == 4:
                 car.angle -= 10
-
+        
         # Update car and fitness
         remain_cars = 0
         for i, car in enumerate(cars):
@@ -376,6 +375,8 @@ def gen_heatmap(genomes, config):
 
         # check
         if remain_cars == 0 or get_generation_duration() > max_heatmap_time:
+            ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, xticklabels=100, yticklabels=100)
+            plt.show()
             break
 
         # Drawing
@@ -383,6 +384,18 @@ def gen_heatmap(genomes, config):
         for car in cars:
             if car.get_alive():
                 car.draw(screen)
+                # print("car.pos[0]: "+str(car.pos[0]))
+                # print("car.pos[1]: "+str(car.pos[1]))
+                heatmap_data[round(car.pos[1]), round(car.pos[0])] += 0.3
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])] += 0.1
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])] += 0.1
+                heatmap_data[round(car.pos[1]), round(car.pos[0])-1] += 0.1
+                heatmap_data[round(car.pos[1]), round(car.pos[0])+1] += 0.1
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])+1] += 0.1
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])-1] += 0.1
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])+1] += 0.1
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])-1] += 0.1
+                print("heatmap_data[round(car.pos[1]), round(car.pos[0])]: "+str(heatmap_data[round(car.pos[1]), round(car.pos[0])]))
 
         text = generation_font.render("Generating Heatmap ..", True, (255, 255, 0))
         text_rect = text.get_rect()
