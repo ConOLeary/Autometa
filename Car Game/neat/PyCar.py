@@ -5,11 +5,13 @@ import sys
 import random
 import neat
 import CheckPointer
+import seaborn
 
 screen_width = 1500
 screen_height = 800
 generation = 0
 max_gen_time = 30000
+max_heatmap_time = 30000
 gen_start_time = 0
 
 car_speed = 12
@@ -309,6 +311,83 @@ def run_car(genomes, config):
         pygame.display.flip()
         clock.tick(0)
 
+def gen_heatmap(genomes, config):
+
+    # Init NEAT
+    nets = []
+    cars = []
+
+    for id, g in genomes:
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        nets.append(net)
+
+        # Init my cars
+        cars.append(Car())
+
+    # Init my game
+    pygame.init()
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    clock = pygame.time.Clock()
+    generation_font = pygame.font.SysFont("Arial", 70)
+    font = pygame.font.SysFont("Arial", 30)
+    map = pygame.image.load('../map.png')
+
+    # Main loop
+    global current_time
+    global gen_start_time
+    current_time = pygame.time.get_ticks()
+    gen_start_time = pygame.time.get_ticks()
+    while True:
+        current_time = pygame.time.get_ticks()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit(0)
+
+        # Input my data and get result from network
+        for index, car in enumerate(cars):
+            output = nets[index].activate(car.get_data())
+            action = output.index(max(output))
+            if action == 0:
+                car.angle += 10
+            elif action == 1:
+                car.angle += 5
+            elif action == 2:
+                pass
+            elif action == 3:
+                car.angle -= 5
+            elif action == 4:
+                car.angle -= 10
+
+        # Update car and fitness
+        remain_cars = 0
+        for i, car in enumerate(cars):
+            if car.get_alive():
+                remain_cars += 1
+                car.update(map)
+
+        # check
+        if remain_cars == 0 or get_generation_duration() > max_heatmap_time:
+            break
+
+        # Drawing
+        screen.blit(map, (0, 0))
+        for car in cars:
+            if car.get_alive():
+                car.draw(screen)
+
+        text = generation_font.render("Generating Heatmap ..", True, (255, 255, 0))
+        text_rect = text.get_rect()
+        text_rect.center = (screen_width/2, 100)
+        screen.blit(text, text_rect)
+
+        text = font.render("Remaining Cars: " + str(remain_cars), True, (0, 0, 0))
+        text_rect = text.get_rect()
+        text_rect.center = (screen_width/2, 200)
+        screen.blit(text, text_rect)
+
+        pygame.display.flip()
+        clock.tick(0)
+
 if __name__ == "__main__":
     print('Number of arguments:', len(sys.argv), 'arguments.')
     print('Argument List:', str(sys.argv))
@@ -320,12 +399,21 @@ if __name__ == "__main__":
 
     cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300)
 
+    do_heatmap = 0
     # Create core evolution algorithm class
     if len(sys.argv) == 1:
         p = neat.Population(config, None)
-    elif len(sys.argv) == 2:
+    elif len(sys.argv) > 1:
         print("ais/"+sys.argv[1])
-        p = cp_agent.restore_checkpoint("ais/"+sys.argv[1])
+        try:
+            p = cp_agent.restore_checkpoint("ais/"+sys.argv[1])
+        except FileNotFoundError:
+            print("No such file exists.")
+            exit()
+        if len(sys.argv) == 3:
+            if sys.argv[2] == "-h":
+                print("do a heatmap fella")
+                do_heatmap = 1
 
     p.add_reporter(cp_agent)
     # Add reporter for fancy statistical result
@@ -334,4 +422,7 @@ if __name__ == "__main__":
     p.add_reporter(stats)
 
     # Run NEAT
-    p.run(run_car, 1000)
+    if do_heatmap == 0:
+        p.run(run_car, 1000)
+    elif do_heatmap == 1:
+        p.run(gen_heatmap, 1)
