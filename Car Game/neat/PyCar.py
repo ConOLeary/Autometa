@@ -375,7 +375,8 @@ def gen_heatmap(genomes, config):
 
         # check
         if remain_cars == 0 or get_generation_duration() > max_heatmap_time:
-            ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, xticklabels=100, yticklabels=100)
+            ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False)
+            plt.savefig('foo2.png', pad_inches = 0, bbox_inches = 'tight')
             plt.show()
             break
 
@@ -386,15 +387,15 @@ def gen_heatmap(genomes, config):
                 car.draw(screen)
                 # print("car.pos[0]: "+str(car.pos[0]))
                 # print("car.pos[1]: "+str(car.pos[1]))
-                heatmap_data[round(car.pos[1]), round(car.pos[0])] += 0.3
-                heatmap_data[round(car.pos[1])-1, round(car.pos[0])] += 0.1
-                heatmap_data[round(car.pos[1])+1, round(car.pos[0])] += 0.1
-                heatmap_data[round(car.pos[1]), round(car.pos[0])-1] += 0.1
-                heatmap_data[round(car.pos[1]), round(car.pos[0])+1] += 0.1
-                heatmap_data[round(car.pos[1])-1, round(car.pos[0])+1] += 0.1
-                heatmap_data[round(car.pos[1])-1, round(car.pos[0])-1] += 0.1
-                heatmap_data[round(car.pos[1])+1, round(car.pos[0])+1] += 0.1
-                heatmap_data[round(car.pos[1])+1, round(car.pos[0])-1] += 0.1
+                heatmap_data[round(car.pos[1]), round(car.pos[0])] += 0.4
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])] += 0.2
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])] += 0.2
+                heatmap_data[round(car.pos[1]), round(car.pos[0])-1] += 0.2
+                heatmap_data[round(car.pos[1]), round(car.pos[0])+1] += 0.2
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])+1] += 0.2
+                heatmap_data[round(car.pos[1])-1, round(car.pos[0])-1] += 0.2
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])+1] += 0.2
+                heatmap_data[round(car.pos[1])+1, round(car.pos[0])-1] += 0.2
                 print("heatmap_data[round(car.pos[1]), round(car.pos[0])]: "+str(heatmap_data[round(car.pos[1]), round(car.pos[0])]))
 
         text = generation_font.render("Generating Heatmap ..", True, (255, 255, 0))
