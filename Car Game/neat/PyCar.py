@@ -8,13 +8,14 @@ import CheckPointer
 import seaborn
 import matplotlib.pyplot as plt
 import numpy as np; np.random.seed(0)
+from PIL import Image, ImageEnhance
 
 
 screen_width = 1500
 screen_height = 800
 generation = 0
 max_gen_time = 30000
-max_heatmap_time = 30000
+max_heatmap_time = 5000
 gen_start_time = 0
 
 car_speed = 12
@@ -375,9 +376,27 @@ def gen_heatmap(genomes, config):
 
         # check
         if remain_cars == 0 or get_generation_duration() > max_heatmap_time:
-            ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False, square=True)
+            ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False, square=True, cmap="rocket_r")
             plt.savefig('foo3.png', pad_inches = 0, bbox_inches = 'tight')
-            plt.show()
+            img1 = Image.open('../map.png')
+            img2 = Image.open('foo3.png')
+            img2.putalpha(ImageEnhance.Brightness(img2.split()[3]).enhance(0.8))
+
+            #scaling
+            basewidth = 496
+            wpercent = (basewidth / float(img1.size[0]))
+            hsize = int((float(img1.size[1]) * float(wpercent)))
+            img1 = img1.resize((basewidth, hsize), Image.ANTIALIAS)
+            baseheight = 264
+            hpercent = (baseheight / float(img1.size[1]))
+            wsize = int((float(img1.size[0]) * float(hpercent)))
+            img1 = img1.resize((wsize, baseheight), Image.ANTIALIAS)
+
+
+            img1 = Image.composite(img2, img1, img2)
+            img1 = img1.convert("RGB")
+            img1.save('out2.png')
+            #plt.show()
             break
 
         # Drawing

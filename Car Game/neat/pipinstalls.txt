@@ -1,4 +1,7 @@
+python3 -m pip install:
+
 pickle-mixin
 neat-python
 seaborn
 numpy
+Pillow
