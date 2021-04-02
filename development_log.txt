@@ -1,3 +1,6 @@
+########## 31 / 3 / 2021 ##########
+> Red cars will be fast, green cars will turn fast
+
 ########## 22 / 3 / 2021 ##########
 > Would seem older-school neuro net apporaches like NEAT are more plausible to 'retail' learners, in that they produce a fesible results without a great volume of learning, but that their abilty ceiling is much more limited then contemporary reinforcement learning approaches designed for powerful GPUs;
 ie everything that can be solved through NEAT can be solved in a relatively short period of time (eg hours on a standard computer, rather then days or weeks).
