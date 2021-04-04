@@ -23,7 +23,6 @@ gen_start_time = 0
 car_speed = 12
 grass_speed = 8
 
-check_points = ((1100, 690), (1100, 85), (520, 270), (800, 520), (650, 690))
 finish_line = (1100, 690)
 
 btfo_purple = (146, 15, 95, 255)
@@ -34,19 +33,26 @@ blue = (0, 0, 255)
 red = (255, 0, 0)
 
 class Map:
-    starting_pos = [0, 0]
     def __init__(self, map_no):
         self.img = pygame.image.load("../map"+str(map_no)+".png")
-        if map_no == 1:
-            self.checkpoints = ((1100, 690), (1100, 85), (520, 270), (800, 520), (650, 690))
+        self.checkpoints = [[0, 0]]
+        self.starting_pos = [0, 0]
+        self.starting_angl = 0
+        if map_no == "1":
+            self.checkpoints = [[1100, 690], [1100, 85], [520, 270], [800, 520], [650, 690]]
             self.starting_pos = [700, 650]
+            self.starting_angl = 0
 
 class Car:
-    def __init__(self, starting_pos, starting_angle):
+    def __init__(self, map_no, starting_angle):
         self.surface = pygame.image.load("../car.png")
         self.surface = pygame.transform.scale(self.surface, (100, 100))
         self.rotate_surface = self.surface
-        self.pos = starting_pos
+        self.pos = [0, 0]
+        if map_no == '1':
+            self.pos = [700, 650]
+        elif map_no == '2':
+            self.pos = [50, 550]
         self.angle = starting_angle
         self.speed = 10
         self.center = [self.pos[0] + 50, self.pos[1] + 50]
@@ -107,38 +113,25 @@ class Car:
         if points_on_grass >= 2:
             self.is_on_grass = True
     
-    def check_checkpoint(self):
-        p = check_points[self.current_check]
+    def check_checkpoint(self, map):
+        p = map.checkpoints[self.current_check]
         self.prev_distance = self.cur_distance
         dist = self.get_distance(p, self.center)
         if dist < 70:
             if not self.is_in_cp:
                 self.current_check += 1
                 self.total_checks += 1
-                self.current_check %= len(check_points)
-                if self.current_check == check_points:
+                self.current_check %= len(map.checkpoints)
+                if self.current_check == map.checkpoints:
                     self.laps_done += 1
                     if self.laps_done > current_max_lap:
                         current_max_lap = self.laps_done
                 self.prev_distance = 9999
                 self.time_spent = 0
                 self.is_in_cp = True
-                # print("current check: ", self.current_check)
-                # print("laps done: ", self.laps_done)
         else:
             self.is_in_cp = False
         self.cur_distance = dist
-
-    # def check_for_lap(self):       # functionality entailed in checkpoint checker function
-    #     p = finish_line
-    #     dist = self.get_distance(p, self.center)
-    #     if dist < 70:
-    #         if not self.is_in_finish_line:
-    #             self.laps_done += 1
-    #             print("laps done: ", self.laps_done)
-    #             self.is_in_finish_line = True
-    #     else:
-    #         self.is_in_finish_line = False
 
     def check_btfo_radar(self, degree, map):
         len = 0
@@ -184,18 +177,9 @@ class Car:
         #check position
         self.rotate_surface = self.rot_center(self.surface, self.angle)
         self.pos[0] += math.cos(math.radians(360 - self.angle)) * self.speed
-        # if self.pos[0] < 20:            code to stop car colliding into horizontal bounds of screen
-        #     self.pos[0] = 20
-        # elif self.pos[0] > screen_width - 120:
-        #     self.pos[0] = screen_width - 120
-
         self.distance += self.speed
         self.time_spent += 1
         self.pos[1] += math.sin(math.radians(360 - self.angle)) * self.speed
-        # if self.pos[1] < 20:             code to stop car colliding into vetical bounds of screen
-        #     self.pos[1] = 20
-        # elif self.pos[1] > screen_height - 120:
-        #     self.pos[1] = screen_height - 120
 
         # caculate 4 collision points
         self.center = [int(self.pos[0]) + 50, int(self.pos[1]) + 50]
@@ -207,7 +191,7 @@ class Car:
         self.four_points = [left_top, right_top, left_bottom, right_bottom]
 
         self.check_collision(map, btfo_purple)
-        self.check_checkpoint()
+        self.check_checkpoint(map)
         self.btfo_radars.clear()
         self.roadedge_radars.clear()
         for d in range(-90, 120, 45):
@@ -244,6 +228,21 @@ def get_generation_duration():
         return 1
     return time
 
+def make_decisions(cars, nets):
+    for index, car in enumerate(cars):
+        output = nets[index].activate(car.get_data())
+        action = output.index(max(output))
+        if action == 0:
+            car.angle += 10
+        elif action == 1:
+            car.angle += 5
+        elif action == 2:
+            pass
+        elif action == 3:
+            car.angle -= 5
+        elif action == 4:
+            car.angle -= 10
+
 def run_car(genomes, config):
 
     # Init NEAT
@@ -259,13 +258,13 @@ def run_car(genomes, config):
         starting_angle = 0
         # Init my cars
         if str(map_no) == "1":
-            #starting_pos = map.starting_pos I don't know if I will ever understand why this line of code does not work
+            # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
             starting_pos = [700, 650]
             starting_angle = 0
         if str(map_no) == "2":
             starting_pos = [50, 550]
             starting_angle = -90
-        cars.append(Car(starting_pos, starting_angle))
+        cars.append(Car(map_no, starting_angle))
 
 
     # Init my game
@@ -292,20 +291,7 @@ def run_car(genomes, config):
             if event.type == pygame.QUIT:
                 sys.exit(0)
 
-        # Input my data and get result from network
-        for index, car in enumerate(cars):
-            output = nets[index].activate(car.get_data())
-            action = output.index(max(output))
-            if action == 0:
-                car.angle += 10
-            elif action == 1:
-                car.angle += 5
-            elif action == 2:
-                pass
-            elif action == 3:
-                car.angle -= 5
-            elif action == 4:
-                car.angle -= 10
+        make_decisions(cars, nets)
 
         # Update car and fitness
         remain_cars = 0
@@ -321,8 +307,8 @@ def run_car(genomes, config):
 
         # Drawing
         screen.blit(map.img, (0, 0))
-        # for i, cp in enumerate(check_points): #<-- for seeing all checkpoints
-        #     pygame.draw.circle(self.screen, (255, 255, 0), check_points[i], 70, 1)
+        for i, cp in enumerate(map.checkpoints): #<-- for seeing all checkpoints
+            pygame.draw.circle(screen, (255, 255, 0), map.checkpoints[i], 70, 1)
         for car in cars:
             if car.get_alive():
                 car.draw(screen)
@@ -351,17 +337,15 @@ def gen_heatmap(genomes, config):
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 0
-        starting_pos = [0, 0]
-        starting_angle = 0
         # Init my cars
         if str(map_no) == "1":
-            #starting_pos = map.starting_pos I don't know if I will ever understand why this line of code does not work
+            # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
             starting_pos = [700, 650]
             starting_angle = 0
         if str(map_no) == "2":
             starting_pos = [50, 550]
             starting_angle = -90
-        cars.append(Car(starting_pos, starting_angle))
+        cars.append(Car(map_no, starting_angle))
 
     seaborn.set_theme()
     heatmap_data = np.zeros((800, 1500))
@@ -386,20 +370,7 @@ def gen_heatmap(genomes, config):
             if event.type == pygame.QUIT:
                 sys.exit(0)
 
-        # Input my data and get result from network
-        for index, car in enumerate(cars):
-            output = nets[index].activate(car.get_data())
-            action = output.index(max(output))
-            if action == 0:
-                car.angle += 10
-            elif action == 1:
-                car.angle += 5
-            elif action == 2:
-                pass
-            elif action == 3:
-                car.angle -= 5
-            elif action == 4:
-                car.angle -= 10
+        make_decisions(cars, nets)
         
         # Update car and fitness
         remain_cars = 0
