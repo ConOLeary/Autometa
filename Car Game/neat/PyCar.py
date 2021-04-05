@@ -19,11 +19,10 @@ max_heatmap_time = 5000
 max_gen_laps = 1
 max_heatmap_laps = 1
 gen_start_time = 0
+checkpoint_diameter = 80
 
 car_speed = 12
 grass_speed = 8
-
-finish_line = (1100, 690)
 
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
@@ -33,15 +32,23 @@ blue = (0, 0, 255)
 red = (255, 0, 0)
 
 class Map:
-    def __init__(self, map_no):
+    def __init__(self, map_no, cars):
+        self.cars = cars
         self.img = pygame.image.load("../map"+str(map_no)+".png")
         self.checkpoints = [[0, 0]]
+        self.checkpoints_growth = [0] # Lengths the diameters of checkpoints should deviate from standard
         self.starting_pos = [0, 0]
         self.starting_angl = 0
         if map_no == "1":
             self.checkpoints = [[1100, 690], [1100, 85], [520, 270], [800, 520], [650, 690]]
             self.starting_pos = [700, 650]
             self.starting_angl = 0
+        if map_no == "2":
+            self.checkpoints = [[180, 705], [1330, 400], [200, 175], [90, 470]]
+            self.checkpoints_growth = [0, 65, 80, 0]
+            self.starting_pos = [700, 650]
+            self.starting_angl = -90
+        
 
 class Car:
     def __init__(self, map_no, starting_angle):
@@ -117,7 +124,7 @@ class Car:
         p = map.checkpoints[self.current_check]
         self.prev_distance = self.cur_distance
         dist = self.get_distance(p, self.center)
-        if dist < 70:
+        if dist < checkpoint_diameter + map.checkpoints_growth[self.current_check]:
             if not self.is_in_cp:
                 self.current_check += 1
                 self.total_checks += 1
@@ -244,12 +251,9 @@ def make_decisions(cars, nets):
             car.angle -= 10
 
 def run_car(genomes, config):
-
     # Init NEAT
     nets = []
     cars = []
-    map = Map(map_no)
-
     for id, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
@@ -265,7 +269,7 @@ def run_car(genomes, config):
             starting_pos = [50, 550]
             starting_angle = -90
         cars.append(Car(map_no, starting_angle))
-
+    map = Map(map_no, cars)
 
     # Init my game
     pygame.init()
@@ -291,11 +295,11 @@ def run_car(genomes, config):
             if event.type == pygame.QUIT:
                 sys.exit(0)
 
-        make_decisions(cars, nets)
+        make_decisions(map.cars, nets)
 
         # Update car and fitness
         remain_cars = 0
-        for i, car in enumerate(cars):
+        for i, car in enumerate(map.cars):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
@@ -308,8 +312,8 @@ def run_car(genomes, config):
         # Drawing
         screen.blit(map.img, (0, 0))
         for i, cp in enumerate(map.checkpoints): #<-- for seeing all checkpoints
-            pygame.draw.circle(screen, (255, 255, 0), map.checkpoints[i], 70, 1)
-        for car in cars:
+            pygame.draw.circle(screen, (255, 255, 0), map.checkpoints[i], checkpoint_diameter + map.checkpoints_growth[i], 1)
+        for car in map.cars:
             if car.get_alive():
                 car.draw(screen)
 
@@ -327,11 +331,9 @@ def run_car(genomes, config):
         clock.tick(0)
 
 def gen_heatmap(genomes, config):
-
     # Init NEAT
     nets = []
     cars = []
-    map = Map(map_no)
 
     for id, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
@@ -346,6 +348,7 @@ def gen_heatmap(genomes, config):
             starting_pos = [50, 550]
             starting_angle = -90
         cars.append(Car(map_no, starting_angle))
+    map = Map(map_no, cars)
 
     seaborn.set_theme()
     heatmap_data = np.zeros((800, 1500))
@@ -374,7 +377,7 @@ def gen_heatmap(genomes, config):
         
         # Update car and fitness
         remain_cars = 0
-        for i, car in enumerate(cars):
+        for i, car in enumerate(map.cars):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
@@ -406,7 +409,7 @@ def gen_heatmap(genomes, config):
 
         # Drawing
         screen.blit(map.img, (0, 0))
-        for car in cars:
+        for car in map.cars:
             if car.get_alive():
                 car.draw(screen)
                 # print("car.pos[0]: "+str(car.pos[0]))
