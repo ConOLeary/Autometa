@@ -9,17 +9,18 @@ import seaborn
 import matplotlib.pyplot as plt
 import numpy as np; np.random.seed(0)
 from PIL import Image, ImageEnhance
-
+import random
 
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 20000
-max_heatmap_time = 20000
+max_gen_time = 2000
+max_heatmap_time = 2000
 max_gen_laps = 1
 max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
+amount_of_maps = 2
 
 car_speed = 12
 grass_speed = 8
@@ -68,10 +69,8 @@ class Map:
         self.img = pygame.image.load("../map"+str(self.map_no)+".png")
 
     def switch_map(self):
-        map_no = int(self.map_no)
-        map_no %= 2
-        map_no += 1
-        self.map_no = map_no
+        r = random.randint(1, amount_of_maps)
+        self.map_no = r
 
 class Car:
     def __init__(self, map_no, starting_angle):
