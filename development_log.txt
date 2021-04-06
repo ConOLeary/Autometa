@@ -1,4 +1,6 @@
 ########## 6 / 4 / 2021 ##########
+> Cars are now being trained on a rotation of 3 maps. This has meant that the cars need to be a lot more verstaile, something which my training parameters have not accomplished yet.
+
 > The structure of the code in PyCar.py being an afterthought is starting to take its toll on development; at this stage every new feature I add seems to require significant refactoring.
 That said, I still think head first was the best way to approach this project, as any substantial structuring would have become obsolete fast as my approach, and even my goal, change as I learn more.
 

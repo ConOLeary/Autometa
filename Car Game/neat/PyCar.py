@@ -14,13 +14,13 @@ import random
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 2000
-max_heatmap_time = 2000
+max_gen_time = 20000
+max_heatmap_time = 50000
 max_gen_laps = 1
 max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
-amount_of_maps = 2
+amount_of_maps = 3
 
 car_speed = 12
 grass_speed = 8
@@ -35,13 +35,10 @@ red = (255, 0, 0)
 class Map:
     def __init__(self, map_no):
         self.map_no = map_no
-        #print("self.map_no="+str(self.map_no))
         self.checkpoints = [[0, 0]]
         self.checkpoints_growth = [0] # Lengths the diameters of checkpoints should deviate from standard
         self.starting_pos = [0, 0]
         self.starting_angle = 0
-        #self.switch_map()
-        #self.update_map()
 
     def update_map(self):
         if str(self.map_no) == '1':
@@ -54,6 +51,11 @@ class Map:
             self.checkpoints_growth = [0, 65, 80, 0]
             self.starting_pos = [50.0, 550.0]
             self.starting_angle = -90
+        if str(self.map_no) == '3':
+            self.checkpoints = [[1310, 460], [1035, 705], [700, 720], [155, 150], [680, 180]]
+            self.checkpoints_growth = [85, 0, -15, 55, 0]
+            self.starting_pos = [700.0, 150.0]
+            self.starting_angle = -30
         for i, car in enumerate(cars):
             cars[i].starting_pos = self.starting_pos
             cars[i].starting_angle = self.starting_angle
@@ -264,8 +266,6 @@ def get_generation_duration():
     return time
 
 def make_decisions(nets):
-    print("len(nets)="+str(len(nets)))
-    print("len(cars)="+str(len(cars)))
     for index, car in enumerate(cars):
         output = nets[index].activate(car.get_data())
         action = output.index(max(output))
@@ -291,13 +291,13 @@ def run_car(genomes, config):
         starting_pos = [0, 0]
         starting_angle = 0
         # Init my cars
-        if str(map_no) == "1":
-            # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
-            starting_pos = [700, 650]
-            starting_angle = 0
-        if str(map_no) == "2":
-            starting_pos = [50, 550]
-            starting_angle = -90
+        # if str(map_no) == "1":
+        #     # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
+        #     starting_pos = [700, 650]
+        #     starting_angle = 0
+        # if str(map_no) == "2":
+        #     starting_pos = [50, 550]
+        #     starting_angle = -90
         cars.append(Car(map_no, starting_angle))
     map.switch_map()
     map.update_map()
@@ -382,7 +382,7 @@ def gen_heatmap(genomes, config):
         # if str(map_no) == "2":
         #     starting_pos = [50, 550]
         #     starting_angle = -90
-        cars.append(Car(map_no, starting_angle))
+        cars.append(Car(map_no, 0))
     map = Map(map_no)
 
     seaborn.set_theme()
@@ -484,7 +484,7 @@ if __name__ == "__main__":
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
-    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300)
+    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix="3-map-train")
 
     do_heatmap = 0
     global map_no
@@ -492,7 +492,7 @@ if __name__ == "__main__":
     p = neat.Population(config, None)
     # Create core evolution algorithm class
     if len(sys.argv) > 1:
-        if sys.argv[1] == '1' or sys.argv[1] == '2':
+        if sys.argv[1] == '1' or sys.argv[1] == '2' or sys.argv[1] == '3':
             map_no = sys.argv[1]
             print("> "+sys.argv[1]+" IS a valid map number.")
         else:
@@ -513,9 +513,8 @@ if __name__ == "__main__":
     else:
         print("> Doing training")
 
-    p.add_reporter(cp_agent)
-    # Add reporter for fancy statistical result
-    p.add_reporter(neat.StdOutReporter(True))
+    p.add_reporter(cp_agent) # Reporter that does the file writes
+    p.add_reporter(neat.StdOutReporter(True)) # Add reporter for fancy statistical result
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
 
