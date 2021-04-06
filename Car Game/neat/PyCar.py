@@ -14,8 +14,8 @@ from PIL import Image, ImageEnhance
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 30000
-max_heatmap_time = 5000
+max_gen_time = 20000
+max_heatmap_time = 20000
 max_gen_laps = 1
 max_heatmap_laps = 1
 gen_start_time = 0
@@ -32,23 +32,46 @@ blue = (0, 0, 255)
 red = (255, 0, 0)
 
 class Map:
-    def __init__(self, map_no, cars):
-        self.cars = cars
-        self.img = pygame.image.load("../map"+str(map_no)+".png")
+    def __init__(self, map_no):
+        self.map_no = map_no
+        #print("self.map_no="+str(self.map_no))
         self.checkpoints = [[0, 0]]
         self.checkpoints_growth = [0] # Lengths the diameters of checkpoints should deviate from standard
         self.starting_pos = [0, 0]
-        self.starting_angl = 0
-        if map_no == "1":
+        self.starting_angle = 0
+        #self.switch_map()
+        #self.update_map()
+
+    def update_map(self):
+        if str(self.map_no) == '1':
             self.checkpoints = [[1100, 690], [1100, 85], [520, 270], [800, 520], [650, 690]]
-            self.starting_pos = [700, 650]
-            self.starting_angl = 0
-        if map_no == "2":
+            self.checkpoints_growth = [0, 0, 0, 0, 0]
+            self.starting_pos = [700.0, 650.0]
+            self.starting_angle = 0
+        if str(self.map_no) == '2':
             self.checkpoints = [[180, 705], [1330, 400], [200, 175], [90, 470]]
             self.checkpoints_growth = [0, 65, 80, 0]
-            self.starting_pos = [700, 650]
-            self.starting_angl = -90
-        
+            self.starting_pos = [50.0, 550.0]
+            self.starting_angle = -90
+        for i, car in enumerate(cars):
+            cars[i].starting_pos = self.starting_pos
+            cars[i].starting_angle = self.starting_angle
+            # print("type of self.starting_pos = "+str(type(self.starting_pos)))
+            # print("type of self.starting_pos[0] = "+str(type(self.starting_pos[0])))
+            # print("type of cars[i].pos = "+str(type(cars[i].pos)))
+            # print("type of cars[i].pos[0] = "+str(type(cars[i].pos[0])))
+            #print("self.starting_pos"+str(self.starting_pos))
+            #cars[i].pos = self.starting_pos
+            cars[i].update_pos(self.starting_pos)
+            cars[i].angle = self.starting_angle
+        #print("map_no="+str(map_no))
+        self.img = pygame.image.load("../map"+str(self.map_no)+".png")
+
+    def switch_map(self):
+        map_no = int(self.map_no)
+        map_no %= 2
+        map_no += 1
+        self.map_no = map_no
 
 class Car:
     def __init__(self, map_no, starting_angle):
@@ -80,6 +103,11 @@ class Car:
         self.laps_done = 0
         self.distance = 0
         self.time_spent = 0
+
+    def update_pos(self, new_pos):
+        self.pos[0] = new_pos[0]
+        self.pos[1] = new_pos[1]
+        #print("new pos ="+str(self.pos))
 
     def get_distance(self, p1, p2):
 	    return math.sqrt(math.pow((p1[0] - p2[0]), 2) + math.pow((p1[1] - p2[1]), 2))
@@ -175,6 +203,7 @@ class Car:
         self.roadedge_radars.append([(x, y), dist])
 
     def update(self, map):
+        #print("self.pos = " + str(self.pos))
         #check speed
         self.check_is_on_grass(map)
         self.speed = car_speed
@@ -235,7 +264,9 @@ def get_generation_duration():
         return 1
     return time
 
-def make_decisions(cars, nets):
+def make_decisions(nets):
+    print("len(nets)="+str(len(nets)))
+    print("len(cars)="+str(len(cars)))
     for index, car in enumerate(cars):
         output = nets[index].activate(car.get_data())
         action = output.index(max(output))
@@ -253,7 +284,7 @@ def make_decisions(cars, nets):
 def run_car(genomes, config):
     # Init NEAT
     nets = []
-    cars = []
+
     for id, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
@@ -269,7 +300,10 @@ def run_car(genomes, config):
             starting_pos = [50, 550]
             starting_angle = -90
         cars.append(Car(map_no, starting_angle))
-    map = Map(map_no, cars)
+    map.switch_map()
+    map.update_map()
+    # for i, car in enumerate(cars):
+    #     print("cars["+str(i)+"].starting_angle = "+str(cars[i].starting_angle))
 
     # Init my game
     pygame.init()
@@ -295,11 +329,11 @@ def run_car(genomes, config):
             if event.type == pygame.QUIT:
                 sys.exit(0)
 
-        make_decisions(map.cars, nets)
+        make_decisions(nets)
 
         # Update car and fitness
         remain_cars = 0
-        for i, car in enumerate(map.cars):
+        for i, car in enumerate(cars):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
@@ -307,13 +341,14 @@ def run_car(genomes, config):
 
         # check
         if remain_cars == 0 or get_generation_duration() > max_gen_time or current_max_lap >= max_gen_laps:
+            cars.clear()
             break
 
         # Drawing
         screen.blit(map.img, (0, 0))
         for i, cp in enumerate(map.checkpoints): #<-- for seeing all checkpoints
             pygame.draw.circle(screen, (255, 255, 0), map.checkpoints[i], checkpoint_diameter + map.checkpoints_growth[i], 1)
-        for car in map.cars:
+        for car in cars:
             if car.get_alive():
                 car.draw(screen)
 
@@ -333,6 +368,7 @@ def run_car(genomes, config):
 def gen_heatmap(genomes, config):
     # Init NEAT
     nets = []
+    global cars
     cars = []
 
     for id, g in genomes:
@@ -340,15 +376,15 @@ def gen_heatmap(genomes, config):
         nets.append(net)
         g.fitness = 0
         # Init my cars
-        if str(map_no) == "1":
-            # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
-            starting_pos = [700, 650]
-            starting_angle = 0
-        if str(map_no) == "2":
-            starting_pos = [50, 550]
-            starting_angle = -90
+        # if str(map_no) == "1":
+        #     # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
+        #     starting_pos = [700, 650]
+        #     starting_angle = 0
+        # if str(map_no) == "2":
+        #     starting_pos = [50, 550]
+        #     starting_angle = -90
         cars.append(Car(map_no, starting_angle))
-    map = Map(map_no, cars)
+    map = Map(map_no)
 
     seaborn.set_theme()
     heatmap_data = np.zeros((800, 1500))
@@ -373,11 +409,11 @@ def gen_heatmap(genomes, config):
             if event.type == pygame.QUIT:
                 sys.exit(0)
 
-        make_decisions(cars, nets)
+        make_decisions(nets)
         
         # Update car and fitness
         remain_cars = 0
-        for i, car in enumerate(map.cars):
+        for i, car in enumerate(cars):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
@@ -409,7 +445,7 @@ def gen_heatmap(genomes, config):
 
         # Drawing
         screen.blit(map.img, (0, 0))
-        for car in map.cars:
+        for car in cars:
             if car.get_alive():
                 car.draw(screen)
                 # print("car.pos[0]: "+str(car.pos[0]))
@@ -484,6 +520,9 @@ if __name__ == "__main__":
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
 
+    global cars
+    cars = []
+    map = Map(map_no)
     # Run NEAT
     if do_heatmap == 0:
         p.run(run_car, 1000)
