@@ -1,3 +1,6 @@
+########## 7 / 4 / 2021 ##########
+> Playing around with my NEAR configuration to see what I can change to help the cars be trained to be more versatile. I have realised that I need to change how reward is granted, as the total amount of checkpoints reached by a car divided by the genrations time is not seperating cars that immediately reach 1 checkpoint with cars that go in a circle for ages then bump into the first checkpoint eventually.
+
 ########## 6 / 4 / 2021 ##########
 > Cars are now being trained on a rotation of 3 maps. This has meant that the cars need to be a lot more verstaile, something which my training parameters have not accomplished yet.
 

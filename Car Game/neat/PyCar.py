@@ -14,7 +14,7 @@ import random
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 20000
+max_gen_time = 30000
 max_heatmap_time = 50000
 max_gen_laps = 1
 max_heatmap_laps = 1
@@ -22,7 +22,7 @@ gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
 
-car_speed = 12
+car_speed = 16
 grass_speed = 8
 
 btfo_purple = (146, 15, 95, 255)
@@ -249,7 +249,7 @@ class Car:
     def get_reward(self):
         #print("(", self.distance, " / 1000.0) * (", self.total_checks, " * ", self.total_checks, " * 1000 / ", get_generation_duration(), " * 0.1)")
         #return (self.distance / 1000.0) * (self.total_checks * self.total_checks * 1000 / get_generation_duration() * 0.1)
-        return self.total_checks * self.total_checks / get_generation_duration()
+        return self.total_checks * self.total_checks / get_generation_duration() * 10
 
     def rot_center(self, image, angle):
         orig_rect = image.get_rect()
@@ -290,21 +290,9 @@ def run_car(genomes, config):
         g.fitness = 0
         starting_pos = [0, 0]
         starting_angle = 0
-        # Init my cars
-        # if str(map_no) == "1":
-        #     # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
-        #     starting_pos = [700, 650]
-        #     starting_angle = 0
-        # if str(map_no) == "2":
-        #     starting_pos = [50, 550]
-        #     starting_angle = -90
         cars.append(Car(map_no, starting_angle))
     map.switch_map()
     map.update_map()
-    # for i, car in enumerate(cars):
-    #     print("cars["+str(i)+"].starting_angle = "+str(cars[i].starting_angle))
-
-    # Init my game
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
     clock = pygame.time.Clock()
@@ -374,14 +362,6 @@ def gen_heatmap(genomes, config):
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 0
-        # Init my cars
-        # if str(map_no) == "1":
-        #     # starting_pos = map.starting_pos # I don't know if I will ever understand why this line of code does not work
-        #     starting_pos = [700, 650]
-        #     starting_angle = 0
-        # if str(map_no) == "2":
-        #     starting_pos = [50, 550]
-        #     starting_angle = -90
         cars.append(Car(map_no, 0))
     map = Map(map_no)
 
