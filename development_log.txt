@@ -1,4 +1,10 @@
 ########## 7 / 4 / 2021 ##########
+> Wondering whether I should reshape my output as 3 nuerons, where 1 is whether to turn left, 3 is whether to turn right, and 2 is whether to make the turn that is being taken a hard turn. Not sure how this would effect ai, but it would be less outputs than the current 5, which I assume would be a good thing.
+
+> Going to just train 'map specific' ai to prove my high level concept.
+
+> Making each map have the same amount of checkpoints in hopes to not enourage cars to learn towards one over others
+
 > Playing around with my NEAR configuration to see what I can change to help the cars be trained to be more versatile. I have realised that I need to change how reward is granted, as the total amount of checkpoints reached by a car divided by the genrations time is not seperating cars that immediately reach 1 checkpoint with cars that go in a circle for ages then bump into the first checkpoint eventually.
 
 ########## 6 / 4 / 2021 ##########

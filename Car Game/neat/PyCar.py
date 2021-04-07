@@ -14,16 +14,18 @@ import random
 screen_width = 1500
 screen_height = 800
 generation = 0
-max_gen_time = 30000
-max_heatmap_time = 50000
+max_gen_time = 50000
+max_heatmap_time = 200000
 max_gen_laps = 1
 max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
+ai_name = "map2specific-grass80percentslow"
 
+amount_of_cars = 40 # also need to change this in config-feedforward.txt
 car_speed = 16
-grass_speed = 8
+grass_speed = 3.2
 
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
@@ -42,32 +44,25 @@ class Map:
 
     def update_map(self):
         if str(self.map_no) == '1':
-            self.checkpoints = [[1100, 690], [1100, 85], [520, 270], [800, 520], [650, 690]]
-            self.checkpoints_growth = [0, 0, 0, 0, 0]
+            self.checkpoints = [[1100, 700], [1330, 350], [1100, 85], [520, 270], [800, 520], [650, 700]]
+            self.checkpoints_growth = [10, 80, 0, 10, 0, 15]
             self.starting_pos = [700.0, 650.0]
             self.starting_angle = 0
         if str(self.map_no) == '2':
-            self.checkpoints = [[180, 705], [1330, 400], [200, 175], [90, 470]]
-            self.checkpoints_growth = [0, 65, 80, 0]
+            self.checkpoints = [[180, 705], [750, 590], [1330, 400], [750, 200], [200, 175], [90, 470]]
+            self.checkpoints_growth = [0, 115, 65, 105, 80, 0]
             self.starting_pos = [50.0, 550.0]
             self.starting_angle = -90
         if str(self.map_no) == '3':
-            self.checkpoints = [[1310, 460], [1035, 705], [700, 720], [155, 150], [680, 180]]
-            self.checkpoints_growth = [85, 0, -15, 55, 0]
-            self.starting_pos = [700.0, 150.0]
-            self.starting_angle = -30
+            self.checkpoints = [[155, 150], [450, 680], [700, 720], [1040, 705], [1310, 460], [680, 180]]
+            self.checkpoints_growth = [55, 30, -15, 5, 85, 0]
+            self.starting_pos = [590.0, 105.0]
+            self.starting_angle = 150
         for i, car in enumerate(cars):
             cars[i].starting_pos = self.starting_pos
             cars[i].starting_angle = self.starting_angle
-            # print("type of self.starting_pos = "+str(type(self.starting_pos)))
-            # print("type of self.starting_pos[0] = "+str(type(self.starting_pos[0])))
-            # print("type of cars[i].pos = "+str(type(cars[i].pos)))
-            # print("type of cars[i].pos[0] = "+str(type(cars[i].pos[0])))
-            #print("self.starting_pos"+str(self.starting_pos))
-            #cars[i].pos = self.starting_pos
             cars[i].update_pos(self.starting_pos)
             cars[i].angle = self.starting_angle
-        #print("map_no="+str(map_no))
         self.img = pygame.image.load("../map"+str(self.map_no)+".png")
 
     def switch_map(self):
@@ -99,11 +94,9 @@ class Car:
         self.total_checks = 0
         self.prev_distance = 0
         self.cur_distance = 0
-        self.goal = False
-        self.goal = False
         self.laps_done = 0
         self.distance = 0
-        self.time_spent = 0
+        self.cp_timestamps = [gen_start_time]
 
     def update_pos(self, new_pos):
         self.pos[0] = new_pos[0]
@@ -163,8 +156,8 @@ class Car:
                     if self.laps_done > current_max_lap:
                         current_max_lap = self.laps_done
                 self.prev_distance = 9999
-                self.time_spent = 0
                 self.is_in_cp = True
+                self.cp_timestamps.append(current_time)
         else:
             self.is_in_cp = False
         self.cur_distance = dist
@@ -178,7 +171,7 @@ class Car:
                 len = len + 1
                 x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
                 y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-        except IndexError: # catch the error
+        except IndexError:
             pass
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
         self.btfo_radars.append([(x, y), dist])
@@ -191,14 +184,14 @@ class Car:
         try:
             if map.img.get_at((x, y)) == grass_green:
                 colour = road_grey
-        except IndexError: # catch the error
+        except IndexError:
             pass
         try:
             while not map.img.get_at((x, y)) == colour and len < 300:
                 len = len + 1
                 x = int(self.center[0] + math.cos(math.radians(360 - (self.angle + degree))) * len)
                 y = int(self.center[1] + math.sin(math.radians(360 - (self.angle + degree))) * len)
-        except IndexError: # catch the error
+        except IndexError:
             pass
         dist = int(math.sqrt(math.pow(x - self.center[0], 2) + math.pow(y - self.center[1], 2)))
         self.roadedge_radars.append([(x, y), dist])
@@ -215,7 +208,6 @@ class Car:
         self.rotate_surface = self.rot_center(self.surface, self.angle)
         self.pos[0] += math.cos(math.radians(360 - self.angle)) * self.speed
         self.distance += self.speed
-        self.time_spent += 1
         self.pos[1] += math.sin(math.radians(360 - self.angle)) * self.speed
 
         # caculate 4 collision points
@@ -247,9 +239,15 @@ class Car:
         return self.is_alive
 
     def get_reward(self):
-        #print("(", self.distance, " / 1000.0) * (", self.total_checks, " * ", self.total_checks, " * 1000 / ", get_generation_duration(), " * 0.1)")
-        #return (self.distance / 1000.0) * (self.total_checks * self.total_checks * 1000 / get_generation_duration() * 0.1)
-        return self.total_checks * self.total_checks / get_generation_duration() * 10
+        reward = -10
+        if self.total_checks > 0:
+            reward = 0
+            time_on_check = 0
+            for i in range(self.total_checks):
+                time_on_check = self.cp_timestamps[i + 1] - self.cp_timestamps[i]
+                reward += 1 + i * i / (time_on_check / 1000)
+        print("Reward: "+str(reward))
+        return reward
 
     def rot_center(self, image, angle):
         orig_rect = image.get_rect()
@@ -291,7 +289,8 @@ def run_car(genomes, config):
         starting_pos = [0, 0]
         starting_angle = 0
         cars.append(Car(map_no, starting_angle))
-    map.switch_map()
+    if map_no == '0':
+        map.switch_map()
     map.update_map()
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
@@ -464,15 +463,15 @@ if __name__ == "__main__":
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
 
-    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix="3-map-train")
+    cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix=ai_name)
 
     do_heatmap = 0
     global map_no
-    map_no = 1
+    map_no = 0
     p = neat.Population(config, None)
     # Create core evolution algorithm class
     if len(sys.argv) > 1:
-        if sys.argv[1] == '1' or sys.argv[1] == '2' or sys.argv[1] == '3':
+        if sys.argv[1] == '0' or sys.argv[1] == '1' or sys.argv[1] == '2' or sys.argv[1] == '3':
             map_no = sys.argv[1]
             print("> "+sys.argv[1]+" IS a valid map number.")
         else:
