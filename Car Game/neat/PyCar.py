@@ -15,17 +15,17 @@ screen_width = 1500
 screen_height = 800
 generation = 0
 max_gen_time = 50000
-max_heatmap_time = 200000
-max_gen_laps = 1
+max_heatmap_time = 100000
+max_gen_laps = 10
 max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
-ai_name = "map2specific-grass80percentslow"
+ai_name = "delete-this"
 
 amount_of_cars = 40 # also need to change this in config-feedforward.txt
 car_speed = 16
-grass_speed = 3.2
+grass_speed = 3.2 # 3.2, 8, 12.8
 
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
@@ -151,10 +151,12 @@ class Car:
                 self.current_check += 1
                 self.total_checks += 1
                 self.current_check %= len(map.checkpoints)
-                if self.current_check == map.checkpoints:
+                if self.current_check == 0:
                     self.laps_done += 1
-                    if self.laps_done > current_max_lap:
-                        current_max_lap = self.laps_done
+                    print("lap!")
+                    # if self.laps_done > current_max_lap:
+                    #     print("current_max_lap: "+str(current_max_lap))
+                    #     current_max_lap = self.laps_done
                 self.prev_distance = 9999
                 self.is_in_cp = True
                 self.cp_timestamps.append(current_time)
@@ -246,7 +248,7 @@ class Car:
             for i in range(self.total_checks):
                 time_on_check = self.cp_timestamps[i + 1] - self.cp_timestamps[i]
                 reward += 1 + i * i / (time_on_check / 1000)
-        print("Reward: "+str(reward))
+        #print("Reward: "+str(reward))
         return reward
 
     def rot_center(self, image, angle):
@@ -354,15 +356,15 @@ def run_car(genomes, config):
 def gen_heatmap(genomes, config):
     # Init NEAT
     nets = []
-    global cars
-    cars = []
 
     for id, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         g.fitness = 0
-        cars.append(Car(map_no, 0))
-    map = Map(map_no)
+        starting_pos = [0, 0]
+        starting_angle = 0
+        cars.append(Car(map_no, starting_angle))
+    map.update_map()
 
     seaborn.set_theme()
     heatmap_data = np.zeros((800, 1500))
@@ -375,12 +377,12 @@ def gen_heatmap(genomes, config):
     font = pygame.font.SysFont("Arial", 30)
 
     # Main loop
-    global current_max_lap
     global current_time
     global gen_start_time
     current_time = pygame.time.get_ticks()
     gen_start_time = pygame.time.get_ticks()
     current_max_lap = 0
+    
     while True:
         current_time = pygame.time.get_ticks()
         for event in pygame.event.get():
@@ -395,12 +397,13 @@ def gen_heatmap(genomes, config):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
-
-        # check
-        if remain_cars == 0 or get_generation_duration() > max_gen_time or current_max_lap >= max_gen_laps:
+                if car.laps_done > current_max_lap:
+                    current_max_lap = car.laps_done
+        
+        if remain_cars == 0 or get_generation_duration() > max_heatmap_time or current_max_lap >= max_heatmap_laps:
             ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False, square=True, cmap="rocket")
             plt.savefig('foo3.png', pad_inches = 0, bbox_inches = 'tight')
-            img1 = Image.open('../map1.png')
+            img1 = Image.open('../map2.png')
             img2 = Image.open('foo3.png')
             img2.putalpha(ImageEnhance.Brightness(img2.split()[3]).enhance(0.8))
 
@@ -417,7 +420,7 @@ def gen_heatmap(genomes, config):
 
             img1 = Image.composite(img2, img1, img2)
             img1 = img1.convert("RGB")
-            img1.save('out2.png')
+            img1.save('map2specific-grass80percentslow-42.png')
             #plt.show()
             break
 
@@ -439,7 +442,7 @@ def gen_heatmap(genomes, config):
                 heatmap_data[y-1, x-1] += 0.2
                 heatmap_data[y+1, x+1] += 0.2
                 heatmap_data[y+1, x-1] += 0.2
-                print("heatmap_data[round("+str(y)+"), round("+str(x)+")]: "+str(heatmap_data[y, x]))
+                #print("heatmap_data[round("+str(y)+"), round("+str(x)+")]: "+str(heatmap_data[y, x]))
 
         text = generation_font.render("Generating Heatmap ..", True, (255, 255, 0))
         text_rect = text.get_rect()
