@@ -1,3 +1,6 @@
+########## 3 / 5 / 2021 ##########
+> New config-feedforward producing much nicer results so far. Going to do a new set of heatmaps and see if the new configuration can manage the 3rd map. I had tried to make a seperate config file, "consolidate-genome", to stop mutation and 'tidy up' the genome file to be populated by just its best genomes, although I can't seem to get that to happen.
+
 ########## 8 / 4 / 2021 ##########
 > Heatmaps generating fairly nicely today from the ai's trained yesterday evening. I am wondering whether cars moving slower when  
 

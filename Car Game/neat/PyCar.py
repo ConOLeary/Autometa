@@ -21,11 +21,12 @@ max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
-ai_name = "delete-this"
+ai_name = "map1specific-grass50percentslow-elitism4"
+heatmap_name = "map1specific-grass50percentslow-elitism4"
 
 amount_of_cars = 40 # also need to change this in config-feedforward.txt
 car_speed = 16
-grass_speed = 3.2 # 3.2, 8, 12.8
+grass_speed = 8 # 3.2, 8, 12.8
 
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
@@ -44,8 +45,8 @@ class Map:
 
     def update_map(self):
         if str(self.map_no) == '1':
-            self.checkpoints = [[1100, 700], [1330, 350], [1100, 85], [520, 270], [800, 520], [650, 700]]
-            self.checkpoints_growth = [10, 80, 0, 10, 0, 15]
+            self.checkpoints = [[1100, 700], [1330, 350], [1100, 85], [500, 90], [520, 270], [1005, 400], [800, 520], [650, 700]]
+            self.checkpoints_growth = [10, 80, 0, 0, 10, 75, 0, 15]
             self.starting_pos = [700.0, 650.0]
             self.starting_angle = 0
         if str(self.map_no) == '2':
@@ -92,7 +93,6 @@ class Car:
         self.is_in_cp = False
         self.current_check = 0
         self.total_checks = 0
-        self.prev_distance = 0
         self.cur_distance = 0
         self.laps_done = 0
         self.distance = 0
@@ -144,8 +144,8 @@ class Car:
     
     def check_checkpoint(self, map):
         p = map.checkpoints[self.current_check]
-        self.prev_distance = self.cur_distance
         dist = self.get_distance(p, self.center)
+        self.cur_distance = dist
         if dist < checkpoint_diameter + map.checkpoints_growth[self.current_check]:
             if not self.is_in_cp:
                 self.current_check += 1
@@ -157,12 +157,10 @@ class Car:
                     # if self.laps_done > current_max_lap:
                     #     print("current_max_lap: "+str(current_max_lap))
                     #     current_max_lap = self.laps_done
-                self.prev_distance = 9999
                 self.is_in_cp = True
                 self.cp_timestamps.append(current_time)
         else:
             self.is_in_cp = False
-        self.cur_distance = dist
 
     def check_btfo_radar(self, degree, map):
         len = 0
@@ -243,12 +241,13 @@ class Car:
     def get_reward(self):
         reward = -10
         if self.total_checks > 0:
-            reward = 0
             time_on_check = 0
             for i in range(self.total_checks):
                 time_on_check = self.cp_timestamps[i + 1] - self.cp_timestamps[i]
-                reward += 1 + i * i / (time_on_check / 1000)
-        #print("Reward: "+str(reward))
+                reward += 100 + i * i / (time_on_check / 1000)
+        reward -= self.cur_distance / 10
+        reward -= current_time / 100
+        print("Reward: "+str(reward))
         return reward
 
     def rot_center(self, image, angle):
@@ -259,11 +258,11 @@ class Car:
         rot_image = rot_image.subsurface(rot_rect).copy()
         return rot_image
 
-def get_generation_duration():
-    time = current_time - gen_start_time
-    if time == 0:
-        return 1
-    return time
+# def get_generation_duration():
+#     time = current_time - gen_start_time
+#     if time == 0:
+#         return 1
+#     return time
 
 def make_decisions(nets):
     for index, car in enumerate(cars):
@@ -305,14 +304,13 @@ def run_car(genomes, config):
     global generation
     global current_time
     global gen_start_time
-    current_time = pygame.time.get_ticks()
     gen_start_time = pygame.time.get_ticks()
+    current_time = pygame.time.get_ticks()
     generation += 1
     current_max_lap = 0
     
     while True:
-        current_time = pygame.time.get_ticks()
-
+        current_time = pygame.time.get_ticks() - gen_start_time
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit(0)
@@ -325,10 +323,10 @@ def run_car(genomes, config):
             if car.get_alive():
                 remain_cars += 1
                 car.update(map)
-                genomes[i][1].fitness += car.get_reward()
+                genomes[i][1].fitness = car.get_reward()
 
         # check
-        if remain_cars == 0 or get_generation_duration() > max_gen_time or current_max_lap >= max_gen_laps:
+        if remain_cars == 0 or current_time > max_gen_time or current_max_lap >= max_gen_laps:
             cars.clear()
             break
 
@@ -400,10 +398,10 @@ def gen_heatmap(genomes, config):
                 if car.laps_done > current_max_lap:
                     current_max_lap = car.laps_done
         
-        if remain_cars == 0 or get_generation_duration() > max_heatmap_time or current_max_lap >= max_heatmap_laps:
+        if remain_cars == 0 or current_time > max_heatmap_time or current_max_lap >= max_heatmap_laps:
             ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False, square=True, cmap="rocket")
             plt.savefig('foo3.png', pad_inches = 0, bbox_inches = 'tight')
-            img1 = Image.open('../map2.png')
+            img1 = Image.open('../map'+str(map.map_no)+'.png')
             img2 = Image.open('foo3.png')
             img2.putalpha(ImageEnhance.Brightness(img2.split()[3]).enhance(0.8))
 
@@ -420,7 +418,7 @@ def gen_heatmap(genomes, config):
 
             img1 = Image.composite(img2, img1, img2)
             img1 = img1.convert("RGB")
-            img1.save('map2specific-grass80percentslow-42.png')
+            img1.save('heatmaps/'+heatmap_name+'.png')
             #plt.show()
             break
 
@@ -481,9 +479,9 @@ if __name__ == "__main__":
             print("> "+sys.argv[1]+" is NOT a valid map number.")
             exit()
         if len(sys.argv) > 2:
-            print("> Trying to access ais/"+sys.argv[2])
+            print("> Trying to access genomes/"+sys.argv[2])
             try:
-                p = cp_agent.restore_checkpoint("ais/"+sys.argv[2])
+                p = cp_agent.restore_checkpoint("genomes/"+sys.argv[2])
                 print("> File accessed.")
             except FileNotFoundError:
                 print("> No such file exists.")
@@ -501,6 +499,7 @@ if __name__ == "__main__":
     p.add_reporter(stats)
 
     global cars
+    global map
     cars = []
     map = Map(map_no)
     # Run NEAT

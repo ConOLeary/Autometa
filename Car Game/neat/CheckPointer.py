@@ -64,7 +64,7 @@ class Checkpointer(BaseReporter):
         filename = '{0}{1}{2}{3}{4}'.format(time.strftime("%Y_%m_%d_%H_%M_%S"),"-",self.filename_prefix,"-",generation)
         print("Saving checkpoint to {0}".format(filename))
 
-        with gzip.open("ais/"+filename, 'w', compresslevel=5) as f:
+        with gzip.open("genomes/"+filename, 'w', compresslevel=5) as f:
             data = (generation, config, population, species_set, random.getstate())
             pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
