@@ -21,12 +21,12 @@ max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
-ai_name = "map1specific-grass50percentslow-elitism4"
-heatmap_name = "map1specific-grass50percentslow-elitism4"
+ai_name = "map1specific-grass70.625percentslow-elitism4"
+heatmap_name = "map1specific-grass70.625percentslow-elitism4"
 
 amount_of_cars = 40 # also need to change this in config-feedforward.txt
 car_speed = 16
-grass_speed = 8 # 3.2, 8, 12.8
+grass_speed = 4.7 # 80% slow: 3.2. 50% slow: 8. 80% slow: 12.8.  65% slow: 5.6. 72.5% slow: 4.4. 68.75% slow: 5. 70.625% slow: 4.7
 
 btfo_purple = (146, 15, 95, 255)
 grass_green = (85, 162, 69, 255)
@@ -400,9 +400,9 @@ def gen_heatmap(genomes, config):
         
         if remain_cars == 0 or current_time > max_heatmap_time or current_max_lap >= max_heatmap_laps:
             ax = seaborn.heatmap(heatmap_data, vmin=0, vmax=1, cbar=False, yticklabels=False, xticklabels=False, square=True, cmap="rocket")
-            plt.savefig('foo3.png', pad_inches = 0, bbox_inches = 'tight')
+            plt.savefig('last_heatmap.png', pad_inches = 0, bbox_inches = 'tight')
             img1 = Image.open('../map'+str(map.map_no)+'.png')
-            img2 = Image.open('foo3.png')
+            img2 = Image.open('last_heatmap.png')
             img2.putalpha(ImageEnhance.Brightness(img2.split()[3]).enhance(0.8))
 
             #scaling
@@ -463,9 +463,8 @@ if __name__ == "__main__":
     config_path = "./config-feedforward.txt"
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
-
+    
     cp_agent = CheckPointer.Checkpointer(generation_interval=1, time_interval_seconds=300, filename_prefix=ai_name)
-
     do_heatmap = 0
     global map_no
     map_no = 0
@@ -492,8 +491,9 @@ if __name__ == "__main__":
             do_heatmap = 1
     else:
         print("> Doing training")
-
-    p.add_reporter(cp_agent) # Reporter that does the file writes
+    
+    if do_heatmap == 0:
+        p.add_reporter(cp_agent) # Reporter that does the file writes
     p.add_reporter(neat.StdOutReporter(True)) # Add reporter for fancy statistical result
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
