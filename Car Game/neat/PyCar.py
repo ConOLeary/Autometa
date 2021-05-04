@@ -21,8 +21,8 @@ max_heatmap_laps = 1
 gen_start_time = 0
 checkpoint_diameter = 80
 amount_of_maps = 3
-ai_name = "map1specific-grass70.625percentslow-elitism4"
-heatmap_name = "map1specific-grass70.625percentslow-elitism4"
+ai_name = "map3specific-grass70.625percentslow-elitism4"
+heatmap_name = "map3specific-grass70.625percentslow-elitism4"
 
 amount_of_cars = 40 # also need to change this in config-feedforward.txt
 car_speed = 16
