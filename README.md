@@ -1,5 +1,4 @@
-# Autometa
-Final Year Project: Auto-meta
+# Final Year Project: Autometa
 
 **Report**
 
