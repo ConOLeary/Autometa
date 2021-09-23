@@ -2,7 +2,10 @@
 
 **Report**
 
-* See *Diversifying_the METAs_of_Games_by_Analysing_the_Gameplay_Data_of_AI.pdf*
+* **See** *Diversifying_the METAs_of_Games_by_Analysing_the_Gameplay_Data_of_AI.pdf*
+* *MetaCaniX_Business_Plan.pdf* is a write up of a business proposition that is centred around the technique developed in this project
+
+![training](https://user-images.githubusercontent.com/32519220/134533370-41fa5fe2-8513-45d0-aa12-57e05fbf552a.png)
 
 **High level concept**
 
